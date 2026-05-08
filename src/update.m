@@ -1,0 +1,187 @@
+%*****  UPDATE PARAMETERS & AUXILIARY FIELDS  *****************************
+
+tic;
+
+% update phase indicators
+hasx   = x >= eps^0.5;
+hasm   = m >= eps^0.5;
+
+rhox   = rhox0 .* (1 - aT.*(T-T0) + bPx.*(Pt-P0));
+rhom   = rhom0 .* (1 - aT.*(T-T0) + bPm.*(Pt-P0));
+rho    = 1./(m./rhom  + x./rhox);
+
+rhow   = (rho (icz(1:end-1),:)+rho (icz(2:end),:))/2;
+rhou   = (rho (:,icx(1:end-1))+rho (:,icx(2:end)))/2;
+rhomw  = (rhom(icz(1:end-1),:)+rhom(icz(2:end),:))/2;
+rhomu  = (rhom(:,icx(1:end-1))+rhom(:,icx(2:end)))/2;
+rhoxw  = (rhox(icz(1:end-1),:)+rhox(icz(2:end),:))/2;
+rhoxu  = (rhox(:,icx(1:end-1))+rhox(:,icx(2:end)))/2;
+
+Xw     = (  X(icz(1:end-1),:)+  X(icz(2:end),:))/2;
+Xu     = (  X(:,icx(1:end-1))+  X(:,icx(2:end)))/2;
+Mw     = (  M(icz(1:end-1),:)+  M(icz(2:end),:))/2;
+Mu     = (  M(:,icx(1:end-1))+  M(:,icx(2:end)))/2;
+
+rhoref = mean(rhow,2);
+
+Drhom  = rhomw - rhow;
+Drhox  = rhoxw - rhow;
+Drho   = rhow  - rhoref;
+
+rhoW   = rhow.*W (:,2:end-1);
+rhoU   = rhou.*U (2:end-1,:);
+rhoWx  =   Xw.*Wx(:,2:end-1);
+rhoUx  =   Xu.*Ux(2:end-1,:);
+rhoWm  =   Mw.*Wm(:,2:end-1);
+rhoUm  =   Mu.*Um(2:end-1,:);
+
+% convert weight to volume fraction, update bulk density
+chi    = max(eps,min(1-eps, x.*rho./rhox ));
+mu     = max(eps,min(1-eps, m.*rho./rhom ));
+
+chiw   = (chi(icz(1:end-1),icx)+chi(icz(2:end),icx))./2;
+ muw   = ( mu(icz(1:end-1),icx)+ mu(icz(2:end),icx))./2;
+
+chiu   = (chi(icz,icx(1:end-1))+chi(icz,icx(2:end)))./2;
+ muu   = ( mu(icz,icx(1:end-1))+ mu(icz,icx(2:end)))./2;
+
+x_w    = (x(icz(1:end-1),:)+x(icz(2:end),:))./2;
+m_w    = (m(icz(1:end-1),:)+m(icz(2:end),:))./2;
+
+x_u    = (x(:,icx(1:end-1))+x(:,icx(2:end)))./2;
+m_u    = (m(:,icx(1:end-1))+m(:,icx(2:end)))./2;
+
+Xw     = (X(icz(1:end-1),:)+X(icz(2:end),:))/2;
+Mw     = (M(icz(1:end-1),:)+M(icz(2:end),:))/2;
+
+% update lithostatic pressure
+% Pl(1,:)     = repmat(rhoref(1).*g0.*h/2,1,Nx) + Ptop;
+% Pl(2:end,:) = Pl(1,:) + repmat(cumsum(rhoref(2:end-1).*g0.*h),1,Nx);
+% Pt          = max(Ptop/100,Pl + P(2:end-1,2:end-1));
+Pt(1,:    ) = Ptop    + repmat(rhoref(1).*g0.*h/2,1,Nx);
+Pt(2:end,:) = Pt(1,:) + repmat(cumsum(rhoref(2:end-1).*g0.*h),1,Nx);
+
+% update phase equilibrium
+clap          = (1./mean(rhomw,2) - 1./mean(rhoxw,2))./Dsm;
+Tsol(1,:    ) = Tsol0     + repmat(            clap(1      ).*rhoref(1      ).*g0.*h/2,1,Nx);
+Tsol(2:end,:) = Tsol(1,:) + repmat(cumsum(     clap(2:end-1).*rhoref(2:end-1).*g0.*h ),1,Nx);
+Tliq(1,:    ) = Tliq0     + repmat(       0.75*clap(1      ).*rhoref(1      ).*g0.*h/2,1,Nx);
+Tliq(2:end,:) = Tliq(1,:) + repmat(cumsum(0.75*clap(2:end-1).*rhoref(2:end-1).*g0.*h ),1,Nx);
+
+xq   = max(0,min(1,(T-Tliq)./(Tsol-Tliq)));
+mq   = 1-x;
+
+% get coefficient contrasts
+kv = [etax0;etam0];
+Mv = [etax0;etam0].'./[etax0;etam0];
+
+% get permission weights
+ff = permute(cat(3,chi,mu ),[3,1,2]);
+FF = permute(repmat(ff,1,1,1,2),[4,1,2,3]);
+Sf = (FF./BB).^(1./CC);  Sf = Sf./sum(Sf,2);
+Xf = sum(AA.*Sf,2).*FF + (1-sum(AA.*Sf,2)).*Sf;
+
+% get momentum flux and transfer coefficients
+thtv = squeeze(prod(Mv.^Xf,2));
+etaf = kv.*thtv;
+
+% get effective viscosity
+etamix = squeeze(sum(ff.*etaf,1));
+
+% update velocity divergence
+Div_rhoV  = ddz(rhoW,h) + ddx(rhoU,h);                                      % get mass flux divergence
+Div_V     = ddz(W (:,2:end-1),h) + ddx(U (2:end-1,:),h);                    % get velocity divergence
+Div_rhoVx = ddz(rhoWx,h) + ddx(rhoUx,h);                    % get x-velocity divergence
+Div_rhoVm = ddz(rhoWm,h) + ddx(rhoUm,h);                    % get m-velocity divergence
+Div_Dvx   = ddz(wx(:,2:end-1),h);                                           % get x-segr velocity divergence
+Div_Dvm   = ddz(Wm(:,2:end-1),h);                                           % get m-segr velocity divergence
+Div_xie   = ddz(xiew(:,2:end-1),h) + ddx(xieu(2:end-1,:),h);
+Div_xix   = ddz(xixw(:,2:end-1),h) + ddx(xixu(2:end-1,:),h);
+Div_xis   = ddz(xisw(:,2:end-1),h) + ddx(xisu(2:end-1,:),h);
+
+% update strain rates
+exx = diff(U(2:end-1,:),1,2)./h - Div_V/3;                                 % x-normal strain rate
+ezz = diff(W(:,2:end-1),1,1)./h - Div_V/3;                                 % z-normal strain rate
+exz = (diff(U,1,1)./h+diff(W,1,2)./h)/2;                                   % shear strain rate
+
+eII = (0.5.*(exx.^2 + ezz.^2 ...
+       + 2.*(exz(1:end-1,1:end-1).^2+exz(2:end,1:end-1).^2 ...
+       +     exz(1:end-1,2:end  ).^2+exz(2:end,2:end  ).^2)/4)).^0.5 + eps;
+
+% update velocity magnitudes
+V    = sqrt(((W (1:end-1,2:end-1)+W (2:end,2:end-1))/2).^2 ...
+          + ((U (2:end-1,1:end-1)+U (2:end-1,2:end))/2).^2);               % convection speed magnitude
+Vx   = sqrt(((Wx(1:end-1,2:end-1)+Wx(2:end,2:end-1))/2).^2 ...
+          + ((Ux(2:end-1,1:end-1)+Ux(2:end-1,2:end))/2).^2);               % convection speed magnitude
+vx   = sqrt(((wx(1:end-1,2:end-1)+wx(2:end,2:end-1))/2).^2) + eps;         % xtal segregation speed magnitude
+vm   = sqrt(((wm(1:end-1,2:end-1)+wm(2:end,2:end-1))/2).^2) + eps;         % melt segregation speed magnitude
+xis  = sqrt(((xisw(1:end-1,2:end-1)+xisw(2:end,2:end-1))/2).^2 ...
+          + ((xisu(2:end-1,1:end-1)+xisu(2:end-1,2:end))/2).^2);           % settling noise flux magnitude 
+xix  = sqrt(((xixw(1:end-1,2:end-1)+xixw(2:end,2:end-1))/2).^2 ...
+          + ((xixu(2:end-1,1:end-1)+xixu(2:end-1,2:end))/2).^2);           % xtal eddy noise flux magnitude
+xie  = sqrt(((xiew(1:end-1,2:end-1)+xiew(2:end,2:end-1))/2).^2 ...
+          + ((xieu(2:end-1,1:end-1)+xieu(2:end-1,2:end))/2).^2);           % eddy noise flux magnitude
+
+% update diffusion parameters
+ke    = eII.*L0.^2;                                                        % turbulent eddy diffusivity
+ks    = vx .*l0;                                                           % segregation diffusivity
+kx    = (ks + fReL.*ke);                                                   % regularised particle diffusivity 
+kTe   = kT + fReL.*ke;                                                    % regularised thermal diffusivity
+
+% update viscosities
+etae  = fReL.*ke.*rho;                                                     % eddy viscosity
+etai  = etamix + etae;                                                     % effective viscosity
+
+etat  = fRel.*ks.*rho;                                                     % turbulent drag viscosity
+etasi = etamix + etat;                                                     % effective drag viscosity   
+
+% limit total viscosity contrast
+etamax = min(etai(:)).*etacntr;
+etai   = 1./(1./etamax + 1./etai);
+
+etamax = min(etasi(:)).*etacntr;
+etasi  = 1./(1./etamax + 1./etasi);
+
+% iteratively relax viscosity update
+eta  = (etai  + eta )/2;
+etas = (etasi + etas)/2;
+
+% interpolate to staggered nodes
+etaco  = (eta(icz(1:end-1),icx(1:end-1)).*eta(icz(2:end),icx(1:end-1)) ...
+       .* eta(icz(1:end-1),icx(2:end  )).*eta(icz(2:end),icx(2:end  ))).^0.25;
+
+etasw = (etas(icz(1:end-1),:).*etas(icz(2:end),:)).^0.5;
+
+% update dimensionless numbers
+ReL = V .*L0./(etamix./rho);
+Rel = vx.*l0./(etamix  ./rho);
+ReD = V .*D0./(eta ./rho);                                                 % Reynolds number on scaled domain length
+Red = vx.*d0./(etas./rho);                                                 % particle Reynolds number
+Ra  = V .*D0./kx;                                                          % Rayleigh number on scale domain length 
+Rc  = V./vx;                                                               % particle settling number
+Noe = xie./V;                                                              % mixture-eddy noise flux number
+Nox = xix./vx;                                                             % particle-eddy noise flux number
+Nos = xis./vx;                                                             % particle-settling noise flux number
+
+% update Re-dependent ramp factors
+fReL =  (1-exp(-ReL));         % Re-dependent ramp factor
+fRel =  (1-exp(-Rel));         % Re-dependent ramp factor
+
+% update stresses
+txx = eta   .* exx;                                                        % x-normal stress
+tzz = eta   .* ezz;                                                        % z-normal stress
+txz = etaco .* exz;                                                        % xz-shear stress
+
+tII = (0.5.*(txx.^2 + tzz.^2 ...
+       + 2.*(txz(1:end-1,1:end-1).^2+txz(2:end,1:end-1).^2 ...
+       +     txz(1:end-1,2:end  ).^2+txz(2:end,2:end  ).^2)/4)).^0.5 + eps;
+
+if step>0
+% update time step
+dtk = (h/2)^2/max(kx(:)); % diffusive time step size
+dta =  h/2   /max(abs([Um(:);Wm(:);Ux(:);Wx(:)]+eps));  % advective time step size
+dt  =  min([1.5*dto,min([dtk,CFL*dta]),dtmax]); % time step size
+end
+
+% record timing
+UDtime = UDtime + toc;
