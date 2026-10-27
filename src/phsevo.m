@@ -12,8 +12,18 @@ tic;
 [dffn_S ,qz_dffn_S ,qx_dffn_S ] = diffus(T ,      kT.*rho.*cP./T,h,[1,2],BCD);
 [dffn_Se,qz_dffn_Se,qx_dffn_Se] = diffus(Tp,fReL.*ke.*rho.*cP./T,h,[1,2],BCD);
 
-% wall cooling rate
-bnd_S = (Tw-T).*rho.*cP./(T+273.15)./(tauw + 3*dt).*bndshape;
+% boundary cooling rate
+switch cooling_mode
+    case 'radiative'
+        tautop = abs(sum((Tbnd(1)-T(:)).*rho(:).*cP(:).*topshape(:).*h^2)./sum(5.67e-8.*(T(1,:)+273.15).^4.*h))/atmos_blanket; % radiative cooling
+
+    case 'conductive'
+        tautop = taubnd;
+
+end
+bnd_S = 0*S;
+if ~isnan(Tbnd(1)); bnd_S = bnd_S + (Tbnd(1)-T).*rho.*cP./(T+273.15)./(tautop + dt).*topshape; end
+if ~isnan(Tbnd(2)); bnd_S = bnd_S + (Tbnd(2)-T).*rho.*cP./(T+273.15)./(taubnd + dt).*botshape; end
 
 % total rates of change
 dSdt  = - advn_Sx - advn_Sm + dffn_S + dffn_Se + bnd_S;
@@ -39,7 +49,7 @@ sm  = si(:,:,1);  sx  = si(:,:,2);
 advn_rho = advn_X+advn_M;
 
 % boundary phase change rate
-Gx  = (xq-x).*rho./(taux + 3*dt);
+Gx  = (xq-x).*rho./(taurct + 3*dt);
 
 % total rates of change
 dXdt  = - advn_X + Gx;

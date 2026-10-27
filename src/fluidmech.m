@@ -369,11 +369,11 @@ if ~bnchm
     noise;
 
     % update phase velocities
-    Wx  = W + wx + wdx + xiwx + xiew;  % xtl z-velocity
-    Ux  = U + 0  + udx + xiux + xieu;  % xtl x-velocity
-    Wm  = W + wm + wdm + xiwm + xiew;  % mlt z-velocity
-    Um  = U + 0  + udm + xium + xieu;  % mlt x-velocity
-
+    Wx  = Wn + wxn + wdx;  % xtl z-velocity
+    Ux  = Un + 0   + udx;  % xtl x-velocity
+    Wm  = Wn + wmn + wdm;  % mlt z-velocity
+    Um  = Un + 0   + udm;  % mlt x-velocity
+    
 end
 
 % record timing

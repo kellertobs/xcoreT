@@ -244,8 +244,8 @@ else
     pun = 'GPa';
 end
 xiesc = Wsc;  xieun = Wun;
-xissc = wxsc;  xisun = wun;
-xixsc = Wsc;  xixun = Wun;
+xissc = wxsc; xisun = wun;
+xixsc = wxsc; xixun = wun;
 whsc  = Wsc;  
 end
 Xsc = Xc./ssc;

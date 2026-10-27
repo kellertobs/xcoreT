@@ -141,7 +141,17 @@ MapW = reshape(1:NW,Nz+1,Nx+2);
 MapU = reshape(1:NU,Nz+2,Nx+1) + NW;
 
 % set up shape functions for initial and transient boundary layers
-bndshape  = exp((-ZZ+h/2)/bnd_w);% + exp((-(D-ZZ)+h/2)/bnd_w);
+switch cooling
+    case 'top'
+        topshape  = exp((-ZZ)/bnd_w);
+        botshape  = 0*topshape;
+    case 'bot'
+        botshape  = exp((-(D-ZZ))/bnd_w);
+        topshape  = 0*botshape;
+    case 'topbot'
+        topshape  = exp((-ZZ)/bnd_w);
+        botshape  = exp((-(D-ZZ))/bnd_w);
+end
 bndtaperw = (1 - (exp((-ZZw)/l0h) + exp(-(D-ZZw)/l0h)).*(1-open_sgr));
 
 % set specified boundaries to no slip, else to free slip
@@ -201,8 +211,8 @@ a1      = 1; a2 = 1; a3 = 0; b1 = 1; b2 = 0; b3 = 0;
 
 Adb  = aT./rhom0./cP;
 Pt   = Ptop  + (rhom0.*g0.*ZZ);
-Tliq = Tliq0 + (clap.*rhom0.*g0.*ZZ);
-Tsol = Tsol0 + (clap.*rhom0.*g0.*ZZ);
+Tliq = Tliq0 + (0.75*(1/rhom0-1./rhox0)./Dsm.*rhom0.*g0.*ZZ);
+Tsol = Tsol0 + (     (1/rhom0-1./rhox0)./Dsm.*rhom0.*g0.*ZZ);
 Tp   = Tliq0 .* (1+dTr.*rp/T0+dTg.*gp/T0);
 T    = (Tp+273.15).*exp(aT./rho./cP.*(Pt-P0)) - 273.15;
 for i = 1:10
@@ -217,7 +227,15 @@ for i = 1:10
     M = rho.*m;  Mo = M;  res_M = 0.*M;
     S = rho.*s;  So = S;  res_S = 0.*S;
 
+    switch cooling_mode
+        case 'radiative'
+            tautop = abs(sum((Tbnd(1)-T(:)).*rho(:).*cP(:).*topshape(:).*h^2)./sum(5.67e-8.*(T(1,:)+273.15).^4.*h))/atmos_blanket; % radiative cooling
+        case 'conductive'
+            tautop = taubnd;
+    end
+
     update;
+    
     x = xq; m = 1-xq;
 end
 
@@ -258,7 +276,7 @@ if restart
     end
     if exist(name,'file')
         fprintf('\n  restart from %s \n\n',name);
-        load(name,'U','W','P','x','m','chi','mu','X','M','dXdt','drhodt','Gx','rho','eta','etas','ke','ks','kx','Ra','ReD','Red','Rc','Noe','Nos','Nox','dt','time','step','MFS','wx','wm','psie','psix','psis','xisw','xisu','xiew','xieu','xixw','xixu');
+        load(name,'U','W','P','x','m','chi','mu','s','T','Tp','S','X','M','dXdt','drhodt','dSdt','Gx','rho','eta','etas','ke','ks','kx','kTe','Ra','ReD','Red','Rc','Noe','Nos','Nox','dt','time','step','MFS','wx','wm','psie','psix','psis','xisw','xisu','xiew','xieu','xixw','xixu');
         name = [outdir,'/',runID,'/',runID,'_HST'];
         load(name,'HST');
 

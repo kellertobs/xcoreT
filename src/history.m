@@ -42,6 +42,10 @@ HST.x(stp,2) = mean(x(:));
 HST.x(stp,3) = max(x(:));
 HST.x(stp,4) = std(x(:));
 
+HST.T(stp,1) = min(T(:));
+HST.T(stp,2) = mean(T(:));
+HST.T(stp,3) = max(T(:));
+
 HST.V(stp,1) = min(V(:));
 HST.V(stp,2) = rms(V(:));
 HST.V(stp,3) = max(V(:));
@@ -73,6 +77,14 @@ HST.rho(stp,3) = max(rho(:));
 HST.Ra(stp,1) = min(Ra(:));
 HST.Ra(stp,2) = geomean(Ra(:));
 HST.Ra(stp,3) = max(Ra(:));
+
+HST.RaT(stp,1) = min(RaT(:));
+HST.RaT(stp,2) = geomean(RaT(:));
+HST.RaT(stp,3) = max(RaT(:));
+
+HST.Rcool(stp,1) = min(Rcool(:));
+HST.Rcool(stp,2) = geomean(Rcool(:));
+HST.Rcool(stp,3) = max(Rcool(:));
 
 HST.Rc(stp,1) = min(Rc(:));
 HST.Rc(stp,2) = geomean(Rc(:));
@@ -117,6 +129,11 @@ HST.etas(stp,3) = max(etas(:));
 HST.etat(stp,1) = min(etat(:));
 HST.etat(stp,2) = geomean(etat(:));
 HST.etat(stp,3) = max(etat(:));
+
+HST.qheat(stp,1) = abs(sum((Tbnd(1)-T(:)).*rho(:).*cP./(tautop + dt).*topshape(:).*h^2)/L);
+HST.qheat(stp,2) = abs(sum((Tbnd(2)-T(:)).*rho(:).*cP./(tautop + dt).*botshape(:).*h^2)/L);
+
+HST.Nu(stp,1)    = HST.qheat(stp,1) / (kT.*rhom0.*cP.*abs(mean(T(1,:))-mean(T(2,:)))/D);
 
 % time-averaged diagnostics
 stp0 = round((1./stp.^10 + 1./(30 + (stp-30)*0.75).^10).^-(1/10));

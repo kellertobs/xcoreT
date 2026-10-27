@@ -83,5 +83,9 @@ xiux = (xisu + xixu);
 xiwm = -x_w(:,icx)./m_w(:,icx).*xiwx;
 xium = -x_u(icz,:)./m_u(icz,:).*xiux;
 
+% add noise to velocity fields
+Wn  = W + xiew;
+Un  = U + xieu;
 
-
+wxn = wx + xiwx;
+wmn = wm + xiwm;

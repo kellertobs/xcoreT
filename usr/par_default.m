@@ -74,7 +74,7 @@ gamma     =  1e-3;                % artificial horizontal inertia parameter (onl
 kmin      =  1e-16;               % minimum diffusivity
 kmax      =  1e+16;               % maximum diffusivity
 dtmax     =  1e32;                % maximum time step [s]
-etacntr   =  1e+8;                % maximum viscosity contrast
+etacntr   =  1e+7;                % maximum viscosity contrast
 
 % set other options
 bnchm     =  0;                   % not a benchmark run

@@ -10,6 +10,10 @@ rhox   = rhox0 .* (1 - aT.*(T-T0) + bPx.*(Pt-P0));
 rhom   = rhom0 .* (1 - aT.*(T-T0) + bPm.*(Pt-P0));
 rho    = 1./(m./rhom  + x./rhox);
 
+rhoxp  = rhox0 .* (1 - aT.*(Tp-T0));
+rhomp  = rhom0 .* (1 - aT.*(Tp-T0));
+rhop   = 1./(m./rhomp + x./rhoxp);
+
 rhow   = (rho (icz(1:end-1),:)+rho (icz(2:end),:))/2;
 rhou   = (rho (:,icx(1:end-1))+rho (:,icx(2:end)))/2;
 rhomw  = (rhom(icz(1:end-1),:)+rhom(icz(2:end),:))/2;
@@ -126,7 +130,7 @@ xie  = sqrt(((xiew(1:end-1,2:end-1)+xiew(2:end,2:end-1))/2).^2 ...
 ke    = eII.*L0.^2;                                                        % turbulent eddy diffusivity
 ks    = vx .*l0;                                                           % segregation diffusivity
 kx    = (ks + fReL.*ke);                                                   % regularised particle diffusivity 
-kTe   = kT + fReL.*ke;                                                    % regularised thermal diffusivity
+kTe   = kT + fReL.*ke;                                                     % regularised thermal diffusivity
 
 % update viscosities
 etae  = fReL.*ke.*rho;                                                     % eddy viscosity
@@ -139,8 +143,8 @@ etasi = etamix + etat;                                                     % eff
 etamax = min(etai(:)).*etacntr;
 etai   = 1./(1./etamax + 1./etai);
 
-etamax = min(etasi(:)).*etacntr;
-etasi  = 1./(1./etamax + 1./etasi);
+% etamax = min(etasi(:)).*etacntr;
+% etasi  = 1./(1./etamax + 1./etasi);
 
 % iteratively relax viscosity update
 eta  = (etai  + eta )/2;
@@ -158,7 +162,9 @@ Rel = vx.*l0./(etamix  ./rho);
 ReD = V .*D0./(eta ./rho);                                                 % Reynolds number on scaled domain length
 Red = vx.*d0./(etas./rho);                                                 % particle Reynolds number
 Ra  = V .*D0./kx;                                                          % Rayleigh number on scale domain length 
+RaT = V .*D0./kT;                                                          % thermal Rayleigh number on scale domain length 
 Rc  = V./vx;                                                               % particle settling number
+Rcool = tautop./(D0./V);                                                   % convective cooling number
 Noe = xie./V;                                                              % mixture-eddy noise flux number
 Nox = xix./vx;                                                             % particle-eddy noise flux number
 Nos = xis./vx;                                                             % particle-settling noise flux number
