@@ -146,10 +146,10 @@ IIL = [IIL; ii(:)]; JJL = [JJL; jj3(:)];   AAL = [AAL;-1/2*EtaC1(:)/h^2];      %
 IIL = [IIL; ii(:)]; JJL = [JJL; jj4(:)];   AAL = [AAL;-1/2*EtaC2(:)/h^2];      % U one below
 
 % what shall we do with the drunken sailor...
-if ~bnchm
-    aa  = ddx(rho(:,icx),h).*g0.*dt;
-    IIL = [IIL; ii(:)]; JJL = [JJL;  ii(:)];   AAL = [AAL; aa(:)];
-end
+% if ~bnchm
+%     aa  = ddx(rho(:,icx),h).*g0.*dt;
+%     IIL = [IIL; ii(:)]; JJL = [JJL;  ii(:)];   AAL = [AAL; aa(:)];
+% end
 
 % coefficients multiplying z-velocities W
 %         top left         ||        top right          ||       bottom left       ||       bottom right
